@@ -19,3 +19,4 @@ jobs:
           target: 'https://www.pudim.com.br/'
           #rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a -z "-config view.locale=pt_BR"'
+          allow_issue_writing: false
