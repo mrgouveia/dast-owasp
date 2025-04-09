@@ -1,26 +1,33 @@
-stages:
-  - test
+name: OWASP ZAP Full Scan
 
-dast_scan:
-  stage: test
-  image: owasp/zap2docker-stable:latest
-  variables:
-    API_URL: "http://www.testeapi.com"
-  script:
-    # Inicia o OWASP ZAP
-    - zap.sh -daemon -host 0.0.0.0 -port 8080
+on:
+  push:
+    branches:
+      - main
 
-    # Adiciona a API a ser testada
-    - zap-cli open-url $API_URL
+jobs:
+  dast_scan:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout do código do repositório
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    # Executa um scan DAST na URL para identificar falhas
-    - zap-cli quick-scan --scanners xss,sqli,auth -o $API_URL
-    
-    # Valida se existem alertas de "Broken Authentication"
-    - >
-      if zap-cli alerts -l High | grep -q "Broken Authentication"; then
-        echo "⚠️  Vulnerabilidades de Broken Authentication detectadas!";
-        exit 1;
-      else
-        echo "✅ Nenhuma vulnerabilidade de Broken Authentication encontrada.";
-      fi
+      # Executa o OWASP ZAP Full Scan
+      - name: Run OWASP ZAP Full Scan
+        uses: zaproxy/action-full-scan@v0.12.0
+        with:
+          target: "http://www.testeapi.com"
+          rules_file: ".zap/rules-config.json" # Opcional: Arquivo de configuração de regras
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Verifica resultado
+      - name: Check scan results
+        run: |
+          if grep -q "Broken Authentication" zap.out; then
+            echo "⚠️ Vulnerabilidades de Broken Authentication detectadas!";
+            exit 1;
+          else
+            echo "✅ Nenhuma vulnerabilidade de Broken Authentication encontrada.";
+          fi
