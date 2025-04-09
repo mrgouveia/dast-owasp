@@ -1,0 +1,26 @@
+stages:
+  - test
+
+dast_scan:
+  stage: test
+  image: owasp/zap2docker-stable:latest
+  variables:
+    API_URL: "http://www.testeapi.com"
+  script:
+    # Inicia o OWASP ZAP
+    - zap.sh -daemon -host 0.0.0.0 -port 8080
+
+    # Adiciona a API a ser testada
+    - zap-cli open-url $API_URL
+
+    # Executa um scan DAST na URL para identificar falhas
+    - zap-cli quick-scan --scanners xss,sqli,auth -o $API_URL
+    
+    # Valida se existem alertas de "Broken Authentication"
+    - >
+      if zap-cli alerts -l High | grep -q "Broken Authentication"; then
+        echo "⚠️  Vulnerabilidades de Broken Authentication detectadas!";
+        exit 1;
+      else
+        echo "✅ Nenhuma vulnerabilidade de Broken Authentication encontrada.";
+      fi
